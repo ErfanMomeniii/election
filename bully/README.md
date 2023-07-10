@@ -1,4 +1,4 @@
-# Bully
+# bully
 
 The **Bully algorithm** is a classic algorithm used in distributed systems to elect a leader or coordinator among a group of processes. The purpose of the algorithm is to ensure that only one process becomes the coordinator, even in situations where multiple processes may attempt to become the leader simultaneously.
 
