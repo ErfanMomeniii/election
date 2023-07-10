@@ -16,7 +16,9 @@ type Node struct {
 	ElectionTimeout   time.Duration
 	HeartBeatInterval time.Duration
 	Rule              Rule
-	VoteChan          chan string
+	Voted             int
+	VoteChan          chan int
+	AppendEntriesChan chan int
 }
 
 func NewNode(id, electionTimeout, heartbeatInterval int) *Node {
@@ -25,16 +27,42 @@ func NewNode(id, electionTimeout, heartbeatInterval int) *Node {
 		LeaderID:          -1,
 		ElectionTimeout:   time.Duration(electionTimeout) * time.Millisecond,
 		HeartBeatInterval: time.Duration(heartbeatInterval) * time.Millisecond,
+		Voted:             0,
 		Rule:              Follower,
+		VoteChan:          make(chan int),
+		AppendEntriesChan: make(chan int),
 	}
 }
 
-func (n *Node) Active() {
+func (n *Node) Active(count int) {
+	ElectionTimeout := n.ElectionTimeout
 
+	go func() {
+		for {
+			time.Sleep(ElectionTimeout)
+		}
+	}()
+
+	go func() {
+		select {
+		case l := <-n.AppendEntriesChan:
+			n.LeaderID = l
+			n.Voted = 0
+			n.Rule = Follower
+			ElectionTimeout = n.ElectionTimeout
+		case <-n.VoteChan:
+			n.Voted++
+			if (count / 2) <= n.Voted {
+				n.LeaderID = n.ID
+				n.Rule = Leader
+				n.Voted = 0
+			}
+		}
+	}()
 }
 
 func StartElection(nodes []*Node) {
 	for _, node := range nodes {
-		go node.Active()
+		go node.Active(len(nodes))
 	}
 }
