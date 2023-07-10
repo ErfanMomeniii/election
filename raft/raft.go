@@ -2,10 +2,10 @@ package raft
 
 import "time"
 
-type Rule int
+type Role int
 
 const (
-	Follower Rule = iota
+	Follower Role = iota
 	Candidate
 	Leader
 )
@@ -15,7 +15,7 @@ type Node struct {
 	LeaderID          int
 	ElectionTimeout   time.Duration
 	HeartBeatInterval time.Duration
-	Rule              Rule
+	Role              Role
 	Voted             int
 	RequestVote       chan *Node
 	VoteChan          chan int
@@ -29,7 +29,7 @@ func NewNode(id, electionTimeout, heartbeatInterval int) *Node {
 		ElectionTimeout:   time.Duration(electionTimeout) * time.Millisecond,
 		HeartBeatInterval: time.Duration(heartbeatInterval) * time.Millisecond,
 		Voted:             0,
-		Rule:              Follower,
+		Role:              Follower,
 		RequestVote:       make(chan *Node),
 		VoteChan:          make(chan int),
 		AppendEntriesChan: make(chan int),
@@ -41,12 +41,12 @@ func (n *Node) Active(otherNodes []*Node) {
 
 	go func() {
 		for {
-			if n.Rule == Follower {
+			if n.Role == Follower {
 				time.Sleep(ElectionTimeout)
 				for _, node := range otherNodes {
 					node.RequestVote <- n
 				}
-			} else if n.Rule == Candidate {
+			} else if n.Role == Candidate {
 				for _, node := range otherNodes {
 					node.RequestVote <- n
 				}
@@ -63,16 +63,16 @@ func (n *Node) Active(otherNodes []*Node) {
 		case l := <-n.AppendEntriesChan:
 			n.LeaderID = l
 			n.Voted = 0
-			n.Rule = Follower
+			n.Role = Follower
 			ElectionTimeout = n.ElectionTimeout
 		case <-n.VoteChan:
 			n.Voted++
 			if (len(otherNodes) / 2) <= n.Voted {
-				if n.Rule == Follower {
-					n.Rule = Candidate
-				} else if n.Rule == Candidate {
+				if n.Role == Follower {
+					n.Role = Candidate
+				} else if n.Role == Candidate {
 					n.LeaderID = n.ID
-					n.Rule = Leader
+					n.Role = Leader
 				}
 				n.Voted = 0
 			}
