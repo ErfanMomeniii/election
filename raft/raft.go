@@ -43,6 +43,9 @@ func (n *Node) Active(otherNodes []*Node) {
 		for {
 			if n.Rule == Follower {
 				time.Sleep(ElectionTimeout)
+				for _, node := range otherNodes {
+					node.RequestVote <- n
+				}
 			} else if n.Rule == Candidate {
 				for _, node := range otherNodes {
 					node.RequestVote <- n
