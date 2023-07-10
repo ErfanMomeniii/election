@@ -63,13 +63,15 @@ func (n *Node) Active(otherNodes []*Node) {
 			n.Rule = Follower
 			ElectionTimeout = n.ElectionTimeout
 		case <-n.VoteChan:
-			if n.Rule == Follower {
-				n.Voted++
-				if (len(otherNodes) / 2) <= n.Voted {
+			n.Voted++
+			if (len(otherNodes) / 2) <= n.Voted {
+				if n.Rule == Follower {
+					n.Rule = Candidate
+				} else if n.Rule == Candidate {
 					n.LeaderID = n.ID
 					n.Rule = Leader
-					n.Voted = 0
 				}
+				n.Voted = 0
 			}
 		case node := <-n.RequestVote:
 			node.VoteChan <- n.ID
